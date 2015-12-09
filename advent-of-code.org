@@ -1,5 +1,7 @@
 #+TITLE: Advent of Code
 #+STARTUP: indent
+#+OPTIONS: num:nil ^:nil d:nil
+#+PROPERTY: header-args :cache yes
 #+DRAWERS: HIDDEN
 
 * Day 1: Not Quite Lisp
@@ -45,6 +47,7 @@ To what floor do the instructions take Santa?
 #+END_EXAMPLE
 :END:
 
+#+name: 1-solution
 #+BEGIN_SRC emacs-lisp :var input=1-input :exports both
   (defun day1/parse-directions (directions)
     (seq-map
@@ -59,7 +62,7 @@ To what floor do the instructions take Santa?
               0)
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS[966acea0b884f9a83f09aae9b3c00803a516e3ca]: 1-solution
 : 74
 
 ** Part 2
@@ -76,6 +79,7 @@ What is the position of the character that causes Santa to first enter the basem
 
 ----------------------------------------------------------------------
 
+#+name: 1.2-solution
 #+BEGIN_SRC emacs-lisp :var input=1-input :exports both
   (defun day1/steps-until (predicate reduce-fn sequence initial-value)
     (car (seq-reduce
@@ -95,6 +99,6 @@ What is the position of the character that causes Santa to first enter the basem
    0)
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS[048e5b88e35ca21b8be15e5cffaa117c4e1eca45]: 1.2-solution
 : 1795
 
