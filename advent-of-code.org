@@ -1345,3 +1345,77 @@ For example:
 
 #+RESULTS[de0154066fa58bb3f337d9fc6135a1e7620998c1]:
 : 2592
+
+** Part 2
+The next year, to speed up the process, Santa creates a robot version
+of himself, *Robo-Santa*, to deliver presents with him.
+
+Santa and Robo-Santa start at the same location (delivering two
+presents to the same starting house), then take turns moving based on
+instructions from the elf, who is eggnoggedly reading from the same
+script as the previous year.
+
+This year, how many houses receive *at least one present*?
+
+For example:
+
+- =^v= delivers presents to =3= houses, because Santa goes north, and
+  then Robo-Santa goes south.
+- =^>v<= now delivers presents to =3= houses, and Santa and Robo-Santa
+  end up back where they started.
+- =^v^v^v^v^v= now delivers presents to =11= houses, with Santa going
+  one direction and Robo-Santa going the other.
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=3-input :exports both
+  (require 'dash)
+
+  (defun day3/alternate (count sequence)
+    (->> (-zip (seq-into sequence 'list)
+               (number-sequence 1 (seq-length sequence)))
+         (-group-by (lambda (x) (mod (cdr x) count)))
+         (-map (lambda (x) (-map #'car (cdr x))))))
+
+  (defun day3/map-visit-n (map coord times)
+    (puthash coord
+             (+ times (gethash coord map 0))
+             map))
+
+  (defun day3/map-visits (map coord)
+    (gethash coord map 0))
+
+  (defun day3/map-locations (map)
+    (hash-table-keys map))
+
+  (defun day3/map-merge (a &rest maps)
+    (-map (lambda (map)
+            (-map (lambda (coord)
+                    (day3/map-visit-n a coord (day3/map-visits map coord)))
+                  (day3/map-locations map)))
+          maps)
+    a)
+
+  (defun day3/deliver-with-robosanta (directions)
+    (let* ((alternated (day3/alternate 2 (string-to-list directions)))
+           (santa-directions (car alternated))
+           (robot-directions (cadr alternated)))
+      (day3/map-merge
+       (day3/deliver santa-directions)
+       (day3/deliver robot-directions))))
+
+  (ert-deftest day3/deliver-with-robosanta ()
+    (should (eq 3 (day3/map-count-visited
+                   (day3/deliver-with-robosanta "^v"))))
+    (should (eq 3 (day3/map-count-visited
+                   (day3/deliver-with-robosanta "^>v<"))))
+    (should (eq 11 (day3/map-count-visited
+                    (day3/deliver-with-robosanta "^v^v^v^v^v")))))
+
+  (day3/map-count-visited
+   (day3/deliver-with-robosanta input))
+#+END_SRC
+
+#+RESULTS[25db54a0aebd3fd8cbb6d364a6a05908e4c1e208]:
+: 2360
+
