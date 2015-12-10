@@ -1419,3 +1419,56 @@ For example:
 #+RESULTS[25db54a0aebd3fd8cbb6d364a6a05908e4c1e208]:
 : 2360
 
+* Day 4: The Ideal Stocking Stuffer
+
+Santa needs help [[https://en.wikipedia.org/wiki/Bitcoin#Mining][mining]] some AdventCoins (very similar to [[https://en.wikipedia.org/wiki/Bitcoin#Mining][bitcoins]]) to
+use as gifts for all the economically forward-thinking little girls
+and boys.
+
+To do this, he needs to find [[https://en.wikipedia.org/wiki/MD5][MD5]] hashes which, in [[https://en.wikipedia.org/wiki/Hexadecimal][hexadecimal]], start
+with at least *five zeroes*. The input to the MD5 hash is some secret
+key (your puzzle input, given below) followed by a number in decimal.
+To mine AdventCoins, you must find Santa the lowest positive number
+(no leading zeroes: =1=, =2=, =3=, ...) that produces such a hash.
+
+For example:
+
+- If your secret key is =abcdef=, the answer is =609043=, because the
+  MD5 hash of =abcdef609043= starts with five zeroes
+  (=000001dbbfa...=), and it is the lowest such number to do so.
+- If your secret key is =pqrstuv=, the lowest number it combines with
+  to make an MD5 hash starting with five zeroes is =1048970=; that is,
+  the MD5 hash of =pqrstuv1048970= looks like =000006136ef...=.
+
+----------------------------------------------------------------------
+
+:HIDDEN:
+#+name: 4-input
+#+BEGIN_EXAMPLE
+  ckczppom
+#+END_EXAMPLE
+:END:
+
+#+BEGIN_SRC emacs-lisp :var input=4-input :exports both
+  (defun day4/mine-hash (key n)
+    (md5 (format "%s%d" key n)))
+
+  (defun day4/adventcoin-hash-p (hash)
+    (string-equal
+     "00000"
+     (substring hash 0 5)))
+
+  (defun day4/first-adventcoin (secret)
+    (loop for x from 0
+          while (not (day4/adventcoin-hash-p (day4/mine-hash secret x)))
+          count x))
+
+  (ert-deftest day4/first-adventcoin ()
+    (should (eq 609043 (day4/first-adventcoin "abcdef")))
+    (should (eq 1048970 (day4/first-adventcoin "pqrstuv"))))
+
+  (day4/first-adventcoin (string-trim input))
+#+END_SRC
+
+#+RESULTS[5929e5d34f2976d5204f75afe31ef59b06411f6d]:
+: 117946
