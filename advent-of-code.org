@@ -2563,6 +2563,74 @@ How many strings are nice?
             (split-string input)))
 #+END_SRC
 
-#+RESULTS[73c750659b346ba431212dfe2678b54b2c605016]:
+#+RESULTS[7332f2494e02290b4a00b217635390fb235e1de7]:
 : 255
 
+** Part 2
+
+Realizing the error of his ways, Santa has switched to a better model
+of determining whether a string is naughty or nice. None of the old
+rules apply, as they are all clearly ridiculous.
+
+Now, a nice string is one with all of the following properties:
+
+- It contains a pair of any two letters that appears at least twice in
+  the string without overlapping, like =xyxy= (=xy=) or =aabcdefgaa=
+  (=aa=), but not like =aaa= (=aa=, but it overlaps).
+- It contains at least one letter which repeats with exactly one
+  letter between them, like =xyx=, =abcdefeghi= (=efe=), or even
+  =aaa=.
+
+For example:
+
+- =qjhvhtzxzqqjkmpb= is nice because is has a pair that appears twice
+  (=qj=) and a letter that repeats with exactly one letter between
+  them (=zxz=).
+- =xxyxx= is nice because it has a pair that appears twice and a
+  letter that repeats with one between, even though the letters used
+  by each rule overlap.
+- =uurcxstgmygtbstg= is naughty because it has a pair (=tg=) but no
+  repeat with a single letter between them.
+- =ieodomkazucvgmuy= is naughty because it has a repeating letter with
+  one between (=odo=), but no pair that appears twice.
+
+How many strings are nice under these new rules?
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=5-input :exports both
+  (defun day5/double-pair? (string)
+    (string-match-p "\\([a-z][a-z]\\).*\\1"
+                    string))
+
+  (ert-deftest day5/double-pair? ()
+    (should (day5/double-pair? "xyxy"))
+    (should (day5/double-pair? "aabcdefgaa"))
+    (should-not (day5/double-pair? "aaa")))
+
+  (defun day5/letter-sandwich? (string)
+    (string-match-p "\\([a-z]\\)[a-z]\\1"
+                    string))
+
+  (ert-deftest day5/letter-sandwich? ()
+    (should (day5/letter-sandwich? "xyx"))
+    (should (day5/letter-sandwich? "abcdefeghi"))
+    (should (day5/letter-sandwich? "aaa")))
+
+  (defun day5/nice?? (string)
+    (and (day5/double-pair? string)
+         (day5/letter-sandwich? string)))
+
+  (ert-deftest day5/nice?? ()
+    (should (day5/nice?? "qjhvhtzxzqqjkmpb"))
+    (should (day5/nice?? "xxyxx"))
+    (should-not (day5/nice?? "uurcxstgmygtbstg"))
+    (should-not (day5/nice?? "ieodomkazucvgmuy")))
+
+  (length
+   (-filter #'day5/nice??
+            (split-string input)))
+#+END_SRC
+
+#+RESULTS[714e53b40cf4a27435a59eafbd8c488cb05bd539]:
+: 55
