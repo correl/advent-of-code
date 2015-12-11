@@ -1470,5 +1470,29 @@ For example:
   (day4/first-adventcoin (string-trim input))
 #+END_SRC
 
-#+RESULTS[5929e5d34f2976d5204f75afe31ef59b06411f6d]:
+#+RESULTS[461139efd69152ff32f7ba3996d41b323fd6c8bd]:
 : 117946
+
+** Part 2
+
+Now find one that starts with *six zeroes*.
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=4-input :exports both
+  (defun day4/adventcoin-hash-6-p (n hash)
+    (string-equal
+     "000000"
+     (substring hash 0 6)))
+
+  (defun day4/first-adventcoin-n (n secret)
+    (loop for x from 0
+          while (not (day4/adventcoin-hash-6-p n (day4/mine-hash secret x)))
+          count x))
+
+  (day4/first-adventcoin-n 6 (string-trim input))
+#+END_SRC
+
+#+RESULTS[637ec8d92dd6b49b39e0eb247af8265cd6938e5a]:
+: 3938038
+
