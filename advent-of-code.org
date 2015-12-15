@@ -4164,3 +4164,178 @@ this puzzle) is =42 - 23 = 19=.
 #+RESULTS[bb50e3c25f6d0d1247acdefae2e5c755c90fe7a7]:
 : 2085
 
+* Day 9: All in a Single Night
+
+Every year, Santa manages to deliver all of his presents in a single
+night.
+
+This year, however, he has some new locations to visit; his elves have
+provided him the distances between every pair of locations. He can
+start and end at any two (different) locations he wants, but he must
+visit each location exactly once. What is the *shortest distance* he
+can travel to achieve this?
+
+For example, given the following distances:
+
+#+name: 9-example
+#+BEGIN_EXAMPLE
+London to Dublin = 464
+London to Belfast = 518
+Dublin to Belfast = 141
+#+END_EXAMPLE
+
+The possible routes are therefore:
+
+#+BEGIN_EXAMPLE
+Dublin -> London -> Belfast = 982
+London -> Dublin -> Belfast = 605
+London -> Belfast -> Dublin = 659
+Dublin -> Belfast -> London = 659
+Belfast -> Dublin -> London = 605
+Belfast -> London -> Dublin = 982
+#+END_EXAMPLE
+
+The shortest of these is =London -> Dublin -> Belfast = 605=, and so
+the answer is =605= in this example.
+
+What is the distance of the shortest route?
+
+----------------------------------------------------------------------
+
+:HIDDEN:
+#+name: 9-input
+#+BEGIN_EXAMPLE
+  Tristram to AlphaCentauri = 34
+  Tristram to Snowdin = 100
+  Tristram to Tambi = 63
+  Tristram to Faerun = 108
+  Tristram to Norrath = 111
+  Tristram to Straylight = 89
+  Tristram to Arbre = 132
+  AlphaCentauri to Snowdin = 4
+  AlphaCentauri to Tambi = 79
+  AlphaCentauri to Faerun = 44
+  AlphaCentauri to Norrath = 147
+  AlphaCentauri to Straylight = 133
+  AlphaCentauri to Arbre = 74
+  Snowdin to Tambi = 105
+  Snowdin to Faerun = 95
+  Snowdin to Norrath = 48
+  Snowdin to Straylight = 88
+  Snowdin to Arbre = 7
+  Tambi to Faerun = 68
+  Tambi to Norrath = 134
+  Tambi to Straylight = 107
+  Tambi to Arbre = 40
+  Faerun to Norrath = 11
+  Faerun to Straylight = 66
+  Faerun to Arbre = 144
+  Norrath to Straylight = 115
+  Norrath to Arbre = 135
+  Straylight to Arbre = 127
+#+END_EXAMPLE
+:END:
+
+#+BEGIN_SRC emacs-lisp :var example=9-example :var input=9-input :noweb yes
+  (defun day9/make-map ()
+    (make-hash-table :test #'equal))
+
+  (defun day9/store-distance (map a b distance)
+    (puthash (cons a b) distance map))
+
+  (defun day9/distance (map a b)
+    (gethash (cons a b) map
+             (gethash (cons b a) map 0)))
+
+  (defun day9/parse-distance (distance-string)
+    (if (string-match "\\(.*?\\) to \\(.*?\\) = \\([0-9]+\\)"
+                      distance-string)
+        (cons (cons (match-string-no-properties 1 distance-string)
+                    (match-string-no-properties 2 distance-string))
+              (string-to-number (match-string-no-properties 3 distance-string)))))
+
+  (ert-deftest day9/parse-distance ()
+    (should (equal '(("London" . "Dublin") . 464)
+                   (day9/parse-distance "London to Dublin = 464"))))
+
+  (defun day9/build-map (input)
+    (let ((map (day9/make-map)))
+      (-each (-map #'day9/parse-distance
+                   (split-string input "\n" t))
+        (lambda (distance)
+          (day9/store-distance map
+                               (caar distance)
+                               (cdar distance)
+                               (cdr distance))))
+      map))
+
+  (defun day9/trip-distance (map trip)
+    (let ((start (first trip))
+          (steps (rest trip)))
+      (if (null steps) 0
+        (+ (day9/distance map start (first steps))
+           (day9/trip-distance map steps)))))
+
+  (defun day9/trip-distance< (min current map trip)
+    (let ((start (first trip))
+          (steps (rest trip)))
+      (cond ((and min (> current min)) nil)
+            ((null steps) current)
+            (t (let ((distance (day9/distance map start (first steps))))
+                 (day9/trip-distance< min (+ distance current) map
+                                      steps))))))
+
+  (lexical-let ((example example))
+    (ert-deftest day9/trip-distance ()
+      (let ((map (day9/build-map example)))
+        (should (eq 982 (day9/trip-distance map
+                                            '("Dublin"
+                                              "London"
+                                              "Belfast")))))))
+
+  (defun day9/permutations (lst)
+    (if (not lst) '(nil)
+      (mapcan
+       (lambda (e)
+         (mapcar (lambda (perm) (cons e perm))
+                 (day9/permutations (-remove-item e lst))))
+       lst)))
+
+  (defun day9/trips (map)
+    "Don't include reversed location permutations"
+    (cl-loop for perm in (day9/permutations (day9/locations map))
+              with unique-perms = (make-hash-table :test 'equal)
+              unless (gethash (reverse perm) unique-perms)
+              do (puthash perm t unique-perms)
+              finally return (hash-table-keys unique-perms)))
+
+  (defun day9/locations (map)
+    (-distinct
+     (append (-map #'car (hash-table-keys map))
+             (-map #'cdr (hash-table-keys map)))))
+
+  (lexical-let ((example example))
+    (ert-deftest day9/locations ()
+      (let ((map (day9/build-map example)))
+        (should (seq-empty-p
+                 (-difference '("Dublin" "London" "Belfast")
+                              (day9/locations map)))))))
+
+  (defun day9/min-trip-distance (map)
+    (cl-loop for path in (day9/trips map)
+             with min-distance
+             do (let ((distance (day9/trip-distance< min-distance 0 map path)))
+                  (if (and (null min-distance) distance)
+                      (setf min-distance distance))
+                  (if (and min-distance distance
+                           (< distance min-distance))
+                      (setf min-distance distance)))
+             finally return min-distance))
+
+  (day9/min-trip-distance
+   (day9/build-map input))
+#+END_SRC
+
+#+RESULTS[052969aa6870de45711d74f55a9ef7dbd058a865]:
+: 251
+
