@@ -3703,3 +3703,20 @@ input), what signal is ultimately provided to *wire a*?
 #+RESULTS[0e096ea6071516679cc36a305883d2bdd808c930]:
 : 956
 
+** Part 2
+Now, take the signal you got on wire =a=, override wire =b= to that
+signal, and reset the other wires (including wire =a=). What new
+signal is ultimately provided to wire =a=?
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=7-input :exports both
+  (let* ((connection-strings (split-string input "\n" t))
+         (circuit (day7/make-circuit connection-strings)))
+    (day7/circuit-put circuit 'b 956)
+    (day7/evaluate circuit 'a))
+#+END_SRC
+
+#+RESULTS[61e8544d7d4f32d111e9a666de842ecc4248e390]:
+: 40149
+
