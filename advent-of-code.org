@@ -4379,3 +4379,68 @@ What is the distance of the longest route?
 
 #+RESULTS[60abd7588f60147684eafda03eae00b226d39891]:
 : 898
+
+* Day 10: Elves Look, Elves Say
+
+Today, the Elves are playing a game called look-and-say. They take
+turns making sequences by reading aloud the previous sequence and
+using that reading as the next sequence. For example, =211= is read as
+"one two, two ones", which becomes =1221= (=1= =2=, =2= =1=s).
+
+Look-and-say sequences are generated iteratively, using the previous
+value as input for the next step. For each step, take the previous
+value, and replace each run of digits (like =111=) with the number of
+digits (=3=) followed by the digit itself (=1=).
+
+For example:
+
+- =1= becomes =11= (=1= copy of digit =1=).
+- =11= becomes =21= (=2= copies of digit =1=).
+- =21= becomes =1211= (one =2= followed by one =1=).
+- =1211= becomes =111221= (one =1=, one =2=, and two =1=s).
+- =111221= becomes =312211= (three =1=s, two =2=s, and one =1=).
+
+Starting with the digits in your puzzle input, apply this process 40
+times. What is *the length of the result*?
+
+----------------------------------------------------------------------
+
+:HIDDEN:
+#+name: 10-input
+#+BEGIN_EXAMPLE
+3113322113
+#+END_EXAMPLE
+:END:
+
+#+BEGIN_SRC emacs-lisp :var input=10-input :exports both
+  (defun day10/say-sequence (seq)
+    (let ((partitioned ))
+      (mapconcat
+       (lambda (chars)
+         (format "%d%s" (length chars) (char-to-string (car chars))))
+       (-partition-by #'identity (seq-into seq 'list))
+       "")))
+
+  (ert-deftest day10/say-sequence ()
+    (should (string-equal "11" (day10/say-sequence "1")))
+    (should (string-equal "21" (day10/say-sequence "11")))
+    (should (string-equal "1211" (day10/say-sequence "21")))
+    (should (string-equal "111221" (day10/say-sequence "1211")))
+    (should (string-equal "312211" (day10/say-sequence "111221"))))
+
+  (defun day10/say-sequence-n (times seq)
+    (-reduce-from
+     (lambda (acc next)
+       (day10/say-sequence acc))
+     seq
+     (number-sequence 1 times)))
+
+  (ert-deftest day10/say-sequence-n ()
+    (should (string-equal "312211" (day10/say-sequence-n 5 "1"))))
+
+  (length (day10/say-sequence-n 40 (string-trim input)))
+#+END_SRC
+
+#+RESULTS[a92ffee565329427383332212debc42eac7b4af2]:
+: 329356
+
