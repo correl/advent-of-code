@@ -4339,3 +4339,43 @@ What is the distance of the shortest route?
 #+RESULTS[052969aa6870de45711d74f55a9ef7dbd058a865]:
 : 251
 
+** Part 2
+The next year, just to show off, Santa decides to take the route with
+the *longest distance* instead.
+
+He can still start and end at any two (different) locations he wants,
+and he still must visit each location exactly once.
+
+For example, given the distances above, the longest route would be
+=982= via (for example) =Dublin -> London -> Belfast=.
+
+What is the distance of the longest route?
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=9-input :exports both
+  (defun day9/trip-distance> (max current map trip)
+    (let ((start (first trip))
+          (steps (rest trip)))
+      (cond ((null steps) current)
+            (t (let ((distance (day9/distance map start (first steps))))
+                 (day9/trip-distance> max (+ distance current) map
+                                      steps))))))
+
+  (defun day9/max-trip-distance (map)
+    (cl-loop for path in (day9/trips map)
+             with max-distance
+             do (let ((distance (day9/trip-distance> max-distance 0 map path)))
+                  (if (and (null max-distance) distance)
+                      (setf max-distance distance))
+                  (if (and max-distance distance
+                           (< max-distance distance))
+                      (setf max-distance distance)))
+             finally return max-distance))
+
+  (day9/max-trip-distance
+   (day9/build-map input))
+#+END_SRC
+
+#+RESULTS[60abd7588f60147684eafda03eae00b226d39891]:
+: 898
