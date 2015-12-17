@@ -4444,3 +4444,19 @@ times. What is *the length of the result*?
 #+RESULTS[a92ffee565329427383332212debc42eac7b4af2]:
 : 329356
 
+** Part 2
+Neat, right? You might also enjoy hearing [[https://www.youtube.com/watch?v=ea7lJkEhytA][John Conway talking about
+this sequence]] (that's Conway of *Conway's Game of Life* fame).
+
+Now, starting again with the digits in your puzzle input, apply this
+process *50* times. What is *the length of the new result*?
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC emacs-lisp :var input=10-input :exports both
+  (length (day10/say-sequence-n 50 (string-trim input)))
+#+END_SRC
+
+#+RESULTS[cc7bbc9c6f3abcff179e832a1ed20371b788b059]:
+: 4666278
+
