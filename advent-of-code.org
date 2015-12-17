@@ -6,6 +6,8 @@
 
 #+BEGIN_SRC emacs-lisp :exports results :results silent
   (require 'ert) ; Require ert for unit tests
+  (require 'dash)
+  (require 'dash-functional)
 #+END_SRC
 
 * Day 1: Not Quite Lisp
@@ -4459,4 +4461,296 @@ process *50* times. What is *the length of the new result*?
 
 #+RESULTS[cc7bbc9c6f3abcff179e832a1ed20371b788b059]:
 : 4666278
+
+* Day 11: Corporate Policy
+
+Santa's previous password expired, and he needs help choosing a new one.
+
+To help him remember his new password after the old one expires, Santa has devised a method of coming up with a password based on the previous one. Corporate policy dictates that passwords must be exactly eight lowercase letters (for security reasons), so he finds his new password by incrementing his old password string repeatedly until it is valid.
+
+Incrementing is just like counting with numbers: xx, xy, xz, ya, yb, and so on. Increase the rightmost letter one step; if it was z, it wraps around to a, and repeat with the next letter to the left until one doesn't wrap around.
+
+Unfortunately for Santa, a new Security-Elf recently started, and he has imposed some additional password requirements:
+
+- Passwords must include one increasing straight of at least three letters, like abc, bcd, cde, and so on, up to xyz. They cannot skip letters; abd doesn't count.
+- Passwords may not contain the letters i, o, or l, as these letters can be mistaken for other characters and are therefore confusing.
+- Passwords must contain at least two different, non-overlapping pairs of letters, like aa, bb, or zz.
+
+For example:
+
+- hijklmmn meets the first requirement (because it contains the straight hij) but fails the second requirement requirement (because it contains i and l).
+- abbceffg meets the third requirement (because it repeats bb and ff) but fails the first requirement.
+- abbcegjk fails the third requirement, because it only has one double letter (bb).
+- The next password after abcdefgh is abcdffaa.
+- The next password after ghijklmn is ghjaabcc, because you eventually skip all the passwords that start with ghi..., since i is not allowed.
+
+Given Santa's current password (your puzzle input), what should his next password be?
+
+----------------------------------------------------------------------
+
+#+name: 11-input
+#+BEGIN_EXAMPLE
+cqjxjnds
+#+END_EXAMPLE
+
+#+BEGIN_SRC emacs-lisp :var input=11-input :exports both
+  (defun day11/inc-password (password)
+    (cl-loop with carry = t
+             for char across (s-reverse password)
+             for new-char = (if carry (+ 1 char)
+                              char)
+             if (> new-char ?z)
+               concat "a" into next-password
+               and do (setq carry t)
+             else
+               concat (char-to-string new-char) into next-password
+               and do (setq carry nil)
+             finally return (s-reverse
+                             (if carry (s-concat next-password "a")
+                               next-password))))
+
+  (ert-deftest day11/inc-password ()
+    (should (equal "xy" (day11/inc-password "xx")))
+    (should (equal "xz" (day11/inc-password "xy")))
+    (should (equal "ya" (day11/inc-password "xz")))
+    (should (equal "aaa" (day11/inc-password "zz"))))
+
+  (defun day11/includes-straight? (password)
+    (if password
+        (cl-loop with chars = (string-to-list password)
+                 with straight = 1
+                 for current = (car chars)
+                 for next = (cadr chars)
+                 while (and next (< straight 3))
+                 do (if (eq next (+ 1 current))
+                        (setq straight (+ 1 straight))
+                      (setq straight 1))
+                 (setq chars (rest chars))
+                 finally return (eq straight 3))))
+
+  (defun day11/no-confusing-letters? (password)
+    (not (string-match-p "[iol]" password)))
+
+  (defun day11/two-different-pairs? (password)
+    (->> password
+         string-to-list
+         (-partition-by #'identity)
+         (-filter (lambda (x) (>= (length x) 2)))
+         (-map #'car)
+         -distinct
+         length
+         (<= 2)))
+
+  (defun day11/valid-password? (password)
+    (and (day11/no-confusing-letters? password)
+         (day11/two-different-pairs? password)
+         (day11/includes-straight? password)))
+
+  (ert-deftest day11/valid-password? ()
+    (should-not (day11/valid-password? "hijklmmn"))
+    (should-not (day11/valid-password? "abbceffg"))
+    (should-not (day11/valid-password? "abbcefgk"))
+    (should (day11/valid-password? "abcdffaa"))
+    (should (day11/valid-password? "ghjaabcc")))
+
+  (defun day11/next (next-fn predicate value)
+    (cl-loop with v = value
+             do (setq v (funcall next-fn v))
+             until (funcall predicate v)
+             finally return v))
+
+  (defun day11/next-password (password)
+    (day11/next
+     #'day11/inc-password
+     #'day11/valid-password?
+     password))
+
+  (ert-deftest day11/next-password ()
+    (should (equal "abcdffaa"
+                   (day11/next-password "abcdefgh")))
+    (should (equal "ghjaabcc"
+                   (day11/next-password "ghijklmn"))))
+
+#+END_SRC
+
+#+RESULTS[e3f93fa2eb79838daab12a13d299d30da1851600]:
+: day11/next-password
+
+#+BEGIN_SRC emacs-lisp
+  (defun day11/to-decimal (password)
+    (cl-loop with p = ""
+             for times from 0
+             until (equal password p)
+             do (setq p (day11/inc-password p))
+             finally return times))
+
+  (ert-deftest day11/to-decimal ()
+    (should (eq 1 (day11/to-decimal "a")))
+    (should (eq 27 (day11/to-decimal "aa")))
+    (should (eq 731 (day11/to-decimal "abc"))))
+#+END_SRC
+
+#+RESULTS[61997d8c37066aa33ef1da62aae97535f27744b7]:
+: day11/to-decimal
+
+| Password | Decimal |
+|----------+---------|
+| a        |       1 |
+| aa       |      27 |
+| aaa      |     703 |
+| aaaa     |   18279 |
+#+TBLFM: $2='(day11/to-int $1)
+
+| aa   | ba   |    26 |
+| aaa  | baa  |   676 |
+| aaaa | baaa | 17576 |
+#+TBLFM: $3='(- (day11/to-int $2) (day11/to-int $1))::
+
+| string | e | decimal |  26^e |   𝚫 |
+|--------+---+---------+-------+-----|
+| z      | 1 |      26 |    26 |   0 |
+| zz     | 2 |     702 |   676 |  26 |
+| zzz    | 3 |   18278 | 17576 | 702 |
+#+TBLFM: $4=26**$2::$5=$3-$4
+
+#+BEGIN_SRC emacs-lisp
+  (defun day11/max (pos)
+    (1- (cl-loop for x from 0 to pos
+                 sum (expt 26 x))))
+
+  (cl-loop for x from 0 to 5
+           collect (list x (day11/max x)))
+#+END_SRC
+
+#+RESULTS[db569313ecda73a8c067e54caa31f2498f8e9ccb]:
+| 0 |        0 |
+| 1 |       26 |
+| 2 |      702 |
+| 3 |    18278 |
+| 4 |   475254 |
+| 5 | 12356630 |
+
+#+BEGIN_SRC emacs-lisp
+  (cl-loop for pos from 0
+           sum (expt 26 pos) into maximum
+           until (> maximum 702)
+           finally return pos)
+#+END_SRC
+
+#+RESULTS[65d9292c08875bd5e0ea2d66b830785b4b9b09c2]:
+: 2
+
+~731 = abc = (0 1 2)~
+
+#+BEGIN_SRC emacs-lisp
+  (defun day11/from-decimal (n)
+    (cl-loop with remaining = n
+             with max-pos = (cl-loop for pos from 0
+                                     sum (expt 26 pos) into maximum
+                                     until (> maximum n)
+                                     finally return (1- pos))
+             for pos downfrom max-pos to 0
+             for value-at-pos = (if (= 0 (% remaining (expt 26 pos))) (1- (/ remaining (expt 26 pos)))
+                                  (/ remaining (expt 26 pos)))
+             for digit = (if (= 0 pos) value-at-pos
+                           (1- value-at-pos))
+             ;; collect (list pos digit)
+             concat (char-to-string (+ ?a digit))
+             do (setq remaining (- remaining (* value-at-pos (expt 26 pos))))
+             ))
+
+  (ert-deftest day11/from-decimal ()
+    (should (equal "a" (day11/from-decimal 1)))
+    (should (equal "z" (day11/from-decimal 26)))
+    (should (equal "xz" (day11/from-decimal 650)))
+    (should (equal "abc" (day11/from-decimal 731)))
+    (should (equal "zzz" (day11/from-decimal 18278))))
+
+  (defun day11/to-decimal (password)
+    (cl-loop for chars = (string-to-list password) then (rest chars)
+             while chars
+             sum (* (1+ (- (first chars) ?a))
+                    (expt 26 (1- (length chars))))))
+
+  (defun day11/inc-password (password)
+    (-> password
+        day11/to-decimal
+        1+
+        day11/from-decimal))
+#+END_SRC
+
+#+RESULTS[7cf5f534d09862a37d0bc5530b0de5cd8846d3fd]:
+: day11/inc-password
+
+#+BEGIN_SRC emacs-lisp
+  (defun day11/from-decimal (n)
+    (cl-loop with remaining = n
+             ;; How many digits long should this number be? This will
+             ;; also be used as the max exponent of 26 to work down
+             ;; from.
+             with max-exp = (cl-loop for pos from 0
+                                     sum (expt 26 pos) into maximum
+                                     while (< (1- maximum) n)
+                                     maximize pos)
+             for exp downfrom max-exp to 0
+             for exp-val = (expt 26 exp)
+             if (<= 27 (/ remaining exp-val))
+             ;; Too big, let the remaining digits absorb it
+             collect 26 into values
+             and do (setq remaining (- remaining (* 26 exp-val)))
+             else if (and (> exp 0) (= 0 (% remaining 26)))
+             ;; Perfectly divisible! Except, oh no, we don't have zeros.
+             ;; Drop it a by multiple and carry the remainder through to
+             ;; the next iteration.
+             collect (/ (- remaining exp-val) exp-val) into values
+             and do (setq remaining exp-val)
+             else
+             collect (/ remaining exp-val) into values
+             and do (setq remaining (% remaining exp-val))
+             finally return (->> values
+                                (-map '1-)
+                                (-map (apply-partially '+ ?a))
+                                (apply 'string))))
+
+  (day11/from-decimal 18279)
+#+END_SRC
+
+#+RESULTS[72a1e01d5c29b04647e80c2160179c06c9dbfb06]:
+: aaaa
+
+Boo, next-password is *still* too slow. Slower, maybe.
+
+#+BEGIN_SRC emacs-lisp
+  (defun day11/from-decimal (n)
+    (->>
+     (-reduce-from
+      (lambda (acc exp-val)
+        (let ((values (car acc))
+              (remaining (cdr acc)))
+          (cond ((<= 27 (/ remaining exp-val))
+                 (cons (cons 26 values)
+                       (- remaining (* 26 exp-val))))
+                ((and (> exp-val 1) (= 0 (% remaining 26)))
+                 (cons (cons (/ (- remaining exp-val) exp-val) values)
+                       exp-val))
+                (t
+                 (cons (cons (/ remaining exp-val) values)
+                       (% remaining exp-val))))
+          ))
+      (cons nil n)
+      (reverse (cl-loop for pos from 0
+                        sum (expt 26 pos) into maximum
+                        while (< (1- maximum) n)
+                        collect (expt 26 pos))))
+     car
+     reverse
+     (-map '1-)
+     (-map (apply-partially '+ ?a))
+     (apply 'string)))
+
+  (day11/from-decimal 18279)
+#+END_SRC
+
+#+RESULTS[9f4122c0cddc66017f1605d52b6ae732b3150cf3]:
+: aaaa
 
